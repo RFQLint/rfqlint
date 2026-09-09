@@ -12,11 +12,9 @@ and [`sep31-conformance`](https://github.com/sep31-conformance/sep31-conformance
 exact project shape, applied to SEP-38:
 
 - **This repo** — the checking library + CLI.
-- `sep38-attestation-registry` — a Soroban contract storing on-chain, admin-signed conformance results.
-- `sep38-conformance-backend` — an API service that runs this checker and publishes passing results to that contract.
-- `sep38-conformance-frontend` — dashboard over that backend.
-
-(The three repos above will get real links here once they're pushed.)
+- [`sep38-attestation-registry`](https://github.com/RFQLint/sep38-attestation-registry) — a Soroban contract storing on-chain, admin-signed conformance results.
+- [`sep38-conformance-backend`](https://github.com/RFQLint/sep38-conformance-backend) — an API service that runs this checker and publishes passing results to that contract.
+- `sep38-conformance-frontend` — dashboard over that backend (link to follow once pushed).
 
 ```mermaid
 flowchart LR
