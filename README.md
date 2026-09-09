@@ -6,6 +6,37 @@ domain; it tells you exactly where that anchor's quote server diverges
 from spec, with a reference back to the relevant section of the SEP for
 every failure.
 
+This is the foundational piece of a four-repo project, mirroring
+[`sep24-conformance`](https://github.com/SEP-24-conform/sep24-conformance)'s
+and [`sep31-conformance`](https://github.com/sep31-conformance/sep31-conformance)'s
+exact project shape, applied to SEP-38:
+
+- **This repo** — the checking library + CLI.
+- `sep38-attestation-registry` — a Soroban contract storing on-chain, admin-signed conformance results.
+- `sep38-conformance-backend` — an API service that runs this checker and publishes passing results to that contract.
+- `sep38-conformance-frontend` — dashboard over that backend.
+
+(The three repos above will get real links here once they're pushed.)
+
+```mermaid
+flowchart LR
+    subgraph This repo
+        Lib[sep38-conformance<br/>library + CLI]
+    end
+    Anchor[(Anchor under test)]
+    BE[sep38-conformance-backend]
+    Contract[sep38-attestation-registry<br/>Soroban contract]
+    FE[sep38-conformance-frontend]
+
+    Lib -->|GET stellar.toml, GET /info, /prices, /price| Anchor
+    BE -->|installs as a normal npm dependency,<br/>runs runConformanceSuite| Lib
+    BE -->|on pass: attest domain, hash| Contract
+    FE -->|POST /api/checks, GET /api/registry| BE
+```
+
+This repo has no dependency on any of them — a standalone library and CLI
+useful on its own, and the shared core the others are built on.
+
 ## Table of contents
 
 - [Why this exists](#why-this-exists)
@@ -16,6 +47,8 @@ every failure.
 - [CLI usage](#cli-usage)
 - [Library usage](#library-usage)
 - [Check reference](#check-reference)
+- [Annotated sample /info response](#annotated-sample-info-response)
+- [Common ways anchors fail this check](#common-ways-anchors-fail-this-check)
 - [Why /prices and /price accept a well-formed error as a pass](#why-prices-and-price-accept-a-well-formed-error-as-a-pass)
 - [A real bug this tool found in SDF's own reference anchor](#a-real-bug-this-tool-found-in-sdfs-own-reference-anchor)
 - [How SEP-38 relates to SEP-24 and SEP-31](#how-sep-38-relates-to-sep-24-and-sep-31)
@@ -23,6 +56,7 @@ every failure.
 - [Development](#development)
 - [Design decisions](#design-decisions)
 - [What this doesn't check (yet)](#what-this-doesnt-check-yet)
+- [Adding a new check](#adding-a-new-check)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 - [License](#license)
@@ -182,6 +216,48 @@ console.log(formatText(report));
 | `prices-reachable`, `prices-json`, `prices-shape` | Derived `GET /prices` query returns a well-formed result | SEP-38 §GET /prices |
 | `price-reachable`, `price-json`, `price-shape` | Derived `GET /price` query returns a well-formed result (all required string fields + `fee.total`/`fee.asset`) | SEP-38 §GET /price |
 
+## Annotated sample /info response
+
+Real shape (trimmed), matching what `testanchor.stellar.org` actually
+returns:
+
+```jsonc
+{
+  "assets": [
+    { "asset": "stellar:native" },                    // Stellar asset: no issuer needed
+    { "asset": "stellar:USDC:GBBD...LLFLA5" },         // Stellar asset: CODE:ISSUER
+    {
+      "asset": "iso4217:USD",                          // fiat asset
+      "country_codes": ["US"],                          // optional: ISO 3166 codes
+      "sell_delivery_methods": [                         // optional, off-chain assets only
+        { "name": "WIRE", "description": "Send USD directly to the Anchor's bank account." }
+      ],
+      "buy_delivery_methods": [
+        { "name": "WIRE", "description": "Have USD sent directly to your bank account." }
+      ]
+    }
+  ]
+}
+```
+
+Only `asset` is required per entry; everything else is optional and
+type-checked if present, not required. This checker's `checkInfoEndpoint`
+also returns the discovered `assetIds` in listed order — `assets[0]` and
+`assets[1]` from this exact response are what get fed into the derived
+`/prices` and `/price` checks (see below).
+
+## Common ways anchors fail this check
+
+Patterns worth watching for, based on what `checks/*.ts` actually guards
+against:
+
+| Symptom | Likely cause |
+|---|---|
+| `toml-quote-server` fails | `stellar.toml` served, but `ANCHOR_QUOTE_SERVER` not declared — often because SEP-38 support was added without updating `stellar.toml`, or only `quotes_supported` was set in a SEP-31 `/info` response with nothing backing it. |
+| `info-asset-<i>-id` fails | An asset string doesn't match the three valid forms — e.g. a bare `USDC` instead of `stellar:USDC:G...`, or an issuer address that's the wrong length. |
+| `prices-shape` / `price-shape` fail with a real HTTP status in the message | The derived query reached the server but got back neither a valid success shape nor a well-formed `{error}` — see [A real bug this tool found in SDF's own reference anchor](#a-real-bug-this-tool-found-in-sdfs-own-reference-anchor) for exactly this happening against a real anchor. |
+| `price-shape` never runs at all | Fewer than 2 assets were discovered in `/info` — the check needs a sell/buy pair and is silently skipped (no result emitted) rather than failing, since "only 1 asset configured" isn't itself a SEP-38 violation. |
+
 ## Why /prices and /price accept a well-formed error as a pass
 
 Unlike the static shape checks (`/info`), the `/prices` and `/price`
@@ -307,6 +383,30 @@ to a real account).
 - Firm-quote expiration/`context` validation logic — this checker
   confirms shape, not that returned prices are numerically sane or that
   `expires_at` behaves correctly over time.
+
+## Adding a new check
+
+Same discipline as both sibling checkers
+([`sep24-conformance`](https://github.com/SEP-24-conform/sep24-conformance#adding-a-new-check),
+[`sep31-conformance`](https://github.com/sep31-conformance/sep31-conformance#adding-a-new-check)):
+
+```mermaid
+flowchart LR
+    A[Read the exact SEP-38 text for the endpoint/field] --> B[Write the check in checks/*.ts, returning CheckResult with a specRef]
+    B --> C[Write a mock-anchor test for the pass case]
+    C --> D[Write a mock-anchor test for at least one fail case]
+    D --> E[Run against testanchor.stellar.org — a real anchor — and confirm it reports correctly]
+    E --> F{Does it pass on the real anchor?}
+    F -->|No| A
+    F -->|Yes| G[Open the PR, citing the spec section for every new check id]
+```
+
+Step E is exactly what caught the real `/price` 502 documented above — a
+new check that only passes its own mock tests hasn't been proven against
+anything except an assumption it encodes itself. `POST /quote` and
+`GET /quote/:id` (see [Contributing](#contributing)) are the clearest
+places to apply this next, since they need a SEP-10 client this project
+doesn't have yet.
 
 ## FAQ
 
