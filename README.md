@@ -109,17 +109,14 @@ for an important nuance in how "pass" is defined for those two.
 Not yet published to npm. Run it without installing:
 
 ```sh
-npx github:<org-or-user>/sep38-conformance check <homeDomain>
+npx github:RFQLint/sep38-conformance check <homeDomain>
 ```
 
 Or add it as a dependency in another project:
 
 ```sh
-npm install github:<org-or-user>/sep38-conformance
+npm install github:RFQLint/sep38-conformance
 ```
-
-(Placeholder `<org-or-user>` above until this repo's final GitHub location
-is live — update to the real path once pushed.)
 
 ## CLI usage
 
