@@ -14,7 +14,7 @@ exact project shape, applied to SEP-38:
 - **This repo** — the checking library + CLI.
 - [`rfqlint-registry`](https://github.com/RFQLint/rfqlint-registry) — a Soroban contract storing on-chain, admin-signed conformance results.
 - [`rfqlint-backend`](https://github.com/RFQLint/rfqlint-backend) — an API service that runs this checker and publishes passing results to that contract.
-- `rfqlint-frontend` — dashboard over that backend (link to follow once pushed).
+- [`rfqlint-frontend`](https://github.com/RFQLint/rfqlint-frontend) — dashboard over that backend.
 
 ```mermaid
 flowchart LR
