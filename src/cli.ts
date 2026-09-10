@@ -6,7 +6,7 @@ import { formatText, formatJson } from "./report.js";
 const program = new Command();
 
 program
-  .name("sep38-conformance")
+  .name("rfqlint")
   .description("Checks a Stellar anchor's SEP-38 (Anchor RFQ / quote server) implementation for spec conformance")
   .version("0.1.0");
 

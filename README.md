@@ -1,4 +1,4 @@
-# sep38-conformance
+# rfqlint
 
 A conformance checker for [SEP-38](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0038.md)
 (Anchor RFQ / quote server) implementations on Stellar. Point it at a
@@ -12,19 +12,19 @@ and [`sep31-conformance`](https://github.com/sep31-conformance/sep31-conformance
 exact project shape, applied to SEP-38:
 
 - **This repo** — the checking library + CLI.
-- [`sep38-attestation-registry`](https://github.com/RFQLint/sep38-attestation-registry) — a Soroban contract storing on-chain, admin-signed conformance results.
-- [`sep38-conformance-backend`](https://github.com/RFQLint/sep38-conformance-backend) — an API service that runs this checker and publishes passing results to that contract.
-- `sep38-conformance-frontend` — dashboard over that backend (link to follow once pushed).
+- [`rfqlint-registry`](https://github.com/RFQLint/rfqlint-registry) — a Soroban contract storing on-chain, admin-signed conformance results.
+- [`rfqlint-backend`](https://github.com/RFQLint/rfqlint-backend) — an API service that runs this checker and publishes passing results to that contract.
+- `rfqlint-frontend` — dashboard over that backend (link to follow once pushed).
 
 ```mermaid
 flowchart LR
     subgraph This repo
-        Lib[sep38-conformance<br/>library + CLI]
+        Lib[rfqlint<br/>library + CLI]
     end
     Anchor[(Anchor under test)]
-    BE[sep38-conformance-backend]
-    Contract[sep38-attestation-registry<br/>Soroban contract]
-    FE[sep38-conformance-frontend]
+    BE[rfqlint-backend]
+    Contract[rfqlint-registry<br/>Soroban contract]
+    FE[rfqlint-frontend]
 
     Lib -->|GET stellar.toml, GET /info, /prices, /price| Anchor
     BE -->|installs as a normal npm dependency,<br/>runs runConformanceSuite| Lib
@@ -141,25 +141,25 @@ for an important nuance in how "pass" is defined for those two.
 Not yet published to npm. Run it without installing:
 
 ```sh
-npx github:RFQLint/sep38-conformance check <homeDomain>
+npx github:RFQLint/rfqlint check <homeDomain>
 ```
 
 Or add it as a dependency in another project:
 
 ```sh
-npm install github:RFQLint/sep38-conformance
+npm install github:RFQLint/rfqlint
 ```
 
 ## CLI usage
 
 ```sh
-sep38-conformance check <homeDomain> [--json]
+rfqlint check <homeDomain> [--json]
 ```
 
 Real output against SDF's own reference anchor:
 
 ```console
-$ sep38-conformance check testanchor.stellar.org
+$ rfqlint check testanchor.stellar.org
 SEP-38 conformance report for testanchor.stellar.org
 Anchor quote server: https://testanchor.stellar.org/sep38
 
@@ -184,7 +184,7 @@ check `fail`s.
 ## Library usage
 
 ```ts
-import { runConformanceSuite, formatText } from "sep38-conformance";
+import { runConformanceSuite, formatText } from "rfqlint";
 
 const report = await runConformanceSuite("testanchor.stellar.org");
 console.log(formatText(report));
@@ -352,7 +352,7 @@ step rather than assumed away.
 instead of requiring the caller to supply them?** A conformance checker
 that needs you to already know an anchor's supported assets before you
 can check it defeats much of the point — deriving the query from `/info`
-means `sep38-conformance check <domain>` alone is enough, same
+means `rfqlint check <domain>` alone is enough, same
 zero-configuration ergonomics as the sibling checkers.
 
 **Why treat a well-formed error response as a pass for `/prices`/`/price`

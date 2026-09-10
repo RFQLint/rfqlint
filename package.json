@@ -1,11 +1,11 @@
 {
-  "name": "sep38-conformance",
+  "name": "rfqlint",
   "version": "0.1.0",
   "description": "Conformance checker for Stellar SEP-38 (Anchor RFQ / quote server) implementations",
   "type": "module",
   "license": "Apache-2.0",
   "bin": {
-    "sep38-conformance": "./dist/cli.js"
+    "rfqlint": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
